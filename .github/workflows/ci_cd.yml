@@ -1,1 +1,35 @@
+name: CSV Masking Pipeline
 
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  mask-csv-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Masking Script
+        env:
+          TONIC_TEXTUAL_API_KEY: ${{ secrets.TONIC_TEXTUAL_API_KEY }}
+        run: python mask_csv.py
+
+      - name: Verify Output
+        run: |
+          if [ -f "masked_output.csv" ]; then
+            echo "Success: masked_output.csv was created."
+          else
+            echo "Error: File was not created."
+            exit 1
+          fi
