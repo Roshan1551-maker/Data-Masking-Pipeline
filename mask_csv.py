@@ -1,37 +1,37 @@
 import os
 import sys
-# Import the Tonic Textual tool
-from tonic_textual.api import TonicTextual
+from tonic_textual.redact_api import TextualNer
+from tonic_textual.helpers.csv_helper import CsvHelper
 
-# 1. Get the API Key from GitHub Secrets
+# Get the API Key
 api_key = os.getenv('TONIC_TEXTUAL_API_KEY')
-base_url = "https://textual.tonic.ai" 
-
 if not api_key:
     print("Error: API Key is missing.")
     sys.exit(1)
 
-client = TonicTextual(base_url, api_key)
+# Initialize Tonic SDK
+ner = TextualNer(api_key=api_key)
+helper = CsvHelper()
 
-# 2. Define your file names
-input_file = "input.csv"    
+# File names
+input_file = "input.csv"
 output_file = "masked_output.csv"
 
 print(f"Reading {input_file}...")
 
 try:
-    # 3. Read the CSV file
     with open(input_file, 'r', encoding='utf-8') as f:
-        csv_content = f.read()
+        # Redact CSV using conversation_id and message fields
+        buf = helper.redact_and_reconstruct(
+            f, has_header=True,
+            conversation_id_column='conversation_id',
+            message_column='message',
+            redact_function=lambda x: ner.redact(x)
+        )
 
-    # 4. Send to Tonic for Masking
-    print("Sending CSV to Tonic.ai...")
-    response = client.redact_csv(csv_content)
-
-    # 5. Save the Clean CSV
-    print(f"Masking complete. Saving to {output_file}...")
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(response.redacted_text)
+    print(f"Writing masked data to {output_file}...")
+    with open(output_file, 'w', encoding='utf-8') as f_out:
+        f_out.write(buf.getvalue())
 
     print("Success!")
 
