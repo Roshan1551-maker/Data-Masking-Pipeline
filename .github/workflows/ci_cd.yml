@@ -1,35 +1,39 @@
-name: CSV Masking Pipeline
-
+name: CSV Redaction Pipeline
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  mask-csv-data:
+  run-redaction:
+    name: Run CSV Redaction
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v6
         with:
           python-version: '3.9'
+          cache: 'pip'
 
-      - name: Install Dependencies
-        run: pip install tonic-textual requests
-
-      - name: Run Masking Script
-        env:
-          TONIC_TEXTUAL_API_KEY: ${{ secrets.TONIC_TEXTUAL_API_KEY }}
-        run: python mask_csv.py
-
-      - name: Verify Output
+      - name: Install dependencies
         run: |
-          if [ -f "masked_output.csv" ]; then
-            echo "Success: masked_output.csv was created."
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run redaction script
+        run: python redact_csv.py
+
+      - name: Verify masked output exists
+        run: |
+          if [ -f masked_output.csv ]; then
+            echo "masked_output.csv created successfully."
           else
-            echo "Error: File was not created."
+            echo "::error ::masked_output.csv not found!"
             exit 1
           fi
